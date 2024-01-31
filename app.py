@@ -42,17 +42,17 @@ def load_data():
 
             if table_name == 'departments':
                 for _, row in df.iterrows():
-                    department = Department(department=row[1])
+                    department = Department(id=int(row[0]), department=row[1])
                     db.session.add(department)
 
             elif table_name == 'jobs':
                 for _, row in df.iterrows():
-                    job = Job(job=row[1])
+                    job = Job(id=int(row[0]), job=row[1])
                     db.session.add(job)
 
             elif table_name == 'hired_employees':
                 for _, row in df.iterrows():
-                    employee = Employee(name=row[1], datetime=row[2], department_id=row[3], job_id=row[4])
+                    employee = Employee(id=int(row[0]), name=row[1], datetime=row[2], department_id=row[3], job_id=row[4])
                     db.session.add(employee)
 
             else:
