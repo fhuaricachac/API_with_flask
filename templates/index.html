@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Exercise Globant</title>
+    </head>
+    <body>
+        <h1>Employee Metrics</h1>
+        <a href="{{ url_for('get_employee_metrics') }}">View Employee Metrics</a>
+        <h1>Hired Employees 2021 Above Average</h1>
+        <a href="{{ url_for('get_hired_employees_above_average') }}">View Hired Employees 2021 Above Average</a>
+
+        <h1>Upload data</h1>
+        <button id="send">Send files</button>
+        <p id="resultado">Resultado</p>
+
+        <script>
+            document.getElementById('send').addEventListener('click', function() {
+                // Realizar una solicitud HTTP al servidor para ejecutar la acción
+                fetch('/send_csv', { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.resultado !== undefined) {
+                    // Verifica que el elemento HTML existe antes de intentar establecer su contenido
+                        const resultadoElement = document.getElementById('resultado');
+                            if (resultadoElement) {
+                                resultadoElement.innerText = data.resultado;
+                            } else {
+                                console.error('Elemento con ID "resultado" no encontrado en el HTML.');
+                            }
+                        } else if (data.error !== undefined) {
+                            console.error('Error:', data.error);
+                        }
+                    })
+                    .catch(error => console.error('Error:', error));
+            });
+        </script>
+    </body>
+</html>

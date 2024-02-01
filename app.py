@@ -1,10 +1,10 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 from flask_sqlalchemy import SQLAlchemy
-import os, sys
+import os, sys, subprocess
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///globant.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['TEMPLATES_AUTO_RELOAD'] = True
 
 db = SQLAlchemy(app)
 
@@ -28,6 +28,15 @@ batch_size = 1000
 def chunks(lst, n):
     for i in range(0, len(lst), n):
         yield lst[i:i + n]
+
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@app.route('/send_csv', methods=['POST'])
+def ejecutar_accion():
+    resultado = subprocess.run(['python', 'send_files.py'], check=True, capture_output=True, text=True)
+    return jsonify({'resultado': resultado.stdout})
 
 @app.route('/load_data', methods=['POST'])
 def load_data():
@@ -142,6 +151,39 @@ def get_employee_metrics():
             })
 
         return jsonify({'employee_metrics': employee_metrics})
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/hired_employees_2021_above_average', methods=['GET'])
+def get_hired_employees_above_average():
+    try:
+        result = db.session.execute(
+    db.text('''
+            SELECT d.id, d.department, count(e.id)
+            FROM department d
+            JOIN employee e ON d.id = e.department_id
+            WHERE CAST(strftime('%Y', e.datetime) AS INTEGER) = 2021
+            GROUP BY d.id, d.department
+            HAVING COUNT(e.id) > (SELECT AVG(employee_count) FROM (
+                            SELECT department_id, COUNT(id) AS employee_count
+                            FROM employee
+                            WHERE CAST(strftime('%Y', datetime) AS INTEGER) = 2021
+                            GROUP BY department_id
+                        ) AS department_averages)
+            ORDER BY 3 desc
+        ''')
+    ).fetchall()
+
+        employee_metrics = []
+        for id, department, hireds in result:
+            employee_metrics.append({
+                'id': id,
+                'department': department,
+                'hireds': hireds
+            })
+
+        return jsonify({'hired_employees_2021_above_average': employee_metrics})
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
