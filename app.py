@@ -111,6 +111,41 @@ def load_data():
         print(f"Error during data loading: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
+@app.route('/employee_metrics', methods=['GET'])
+def get_employee_metrics():
+    try:
+        result = db.session.execute(
+    db.text('''
+            SELECT d.department, j.job,
+            SUM(CASE WHEN CAST(strftime('%m', e.datetime) AS INTEGER) BETWEEN 1 AND 3 THEN 1 else 0 end) AS Q1,
+            SUM(CASE WHEN CAST(strftime('%m', e.datetime) AS INTEGER) BETWEEN 4 AND 6 THEN 1 else 0 end) AS Q2,
+            SUM(CASE WHEN CAST(strftime('%m', e.datetime) AS INTEGER) BETWEEN 7 AND 9 THEN 1 else 0 end) AS Q3,
+            SUM(CASE WHEN CAST(strftime('%m', e.datetime) AS INTEGER) BETWEEN 10 AND 12 THEN 1 else 0 end) AS Q4
+            FROM department d
+            JOIN employee e ON d.id = e.department_id
+            JOIN job j ON j.id = e.job_id
+            WHERE CAST(strftime('%Y', e.datetime) AS INTEGER) = 2021
+            GROUP BY d.id, j.id
+            ORDER BY d.department, j.job
+        ''')
+    ).fetchall()
+
+        employee_metrics = []
+        for department, job, q1, q2, q3, q4 in result:
+            employee_metrics.append({
+                'department': department,
+                'job': job,
+                'q1': q1,
+                'q2': q2,
+                'q3': q3,
+                'q4': q4
+            })
+
+        return jsonify({'employee_metrics': employee_metrics})
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
