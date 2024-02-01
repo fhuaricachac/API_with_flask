@@ -12,7 +12,7 @@ payload = {'files': data_to_send}
 response = requests.post(api_url, json=payload)
 
 if response.status_code == 200:
-    print("files send.")
+    print(f"files send. inserts: {response.text}")
 else:
     print(f"Error with files. cod: {response.status_code}")
     print(response.text)
