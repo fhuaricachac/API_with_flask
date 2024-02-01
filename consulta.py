@@ -1,25 +1,46 @@
 import requests
 import os
+import json
+
+api_url = 'http://127.0.0.1:5000/load_data'
+
+transactions = []
+batch_size = 1000
+
+def chunks(lst, n):
+    for i in range(0, len(lst), n):
+        yield lst[i:i + n]
 
 data_to_send = {
-    'departments': {'file_name': 'departments.csv', 'file_path': 'C:/Users/X11924/Desktop/API REST/load_data/departments.csv'},
-    'jobs': {'file_name': 'jobs.csv', 'file_path': 'C:/Users/X11924/Desktop/API REST/load_data/jobs.csv'},
-    'hired_employees': {'file_name': 'hired_employees.csv', 'file_path': 'C:/Users/X11924/Desktop/API REST/load_data/hired_employees.csv'}
+    'departments': {'file_name': 'departments.csv', 'file_path': './load_data/departments.csv'},
+    'jobs': {'file_name': 'jobs.csv', 'file_path': './load_data/jobs.csv'},
+    'hired_employees': {'file_name': 'hired_employees.csv', 'file_path': './load_data/hired_employees.csv'}
 }
-
-api_url = 'http://127.0.0.1:5000/load_data'  # Reemplaza con la URL de tu API
 
 for table_name, file_info in data_to_send.items():
     file_name = file_info['file_name']
     file_path = file_info['file_path']
 
     if os.path.exists(file_path):
-        files = {'files': (file_name, open(file_path, 'rb'))}
-        response = requests.post(api_url, files=files)
+        with open(file_path, 'rb') as file:
+            file_content = file.read().decode('utf-8')
 
-        if response.status_code == 200:
-            print(f"Archivo {file_name} enviado con éxito.")
-        else:
-            print(f"Error al enviar el archivo {file_name}. Código de estado: {response.status_code}")
+        for line in file_content.splitlines():
+            row_data = line.split(',')
+            transaction = {
+                'table_name': table_name,
+                'data': row_data
+            }
+            transactions.append(transaction)
+
+transaction_batches = list(chunks(transactions, batch_size))
+
+for i, batch in enumerate(transaction_batches):
+    payload = {'transactions': batch}
+    response = requests.post(api_url, json=payload)
+
+    if response.status_code == 200:
+        print(f"Lote de datos enviado con éxito #{i+1}")
     else:
-        print(f"El archivo {file_name} no existe en la ruta especificada: {file_path}")
+        print(f"Error al enviar el lote de datos {i+1}. Código de estado: {response.status_code}")
+        print(response.text)
